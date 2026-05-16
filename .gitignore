@@ -26,6 +26,9 @@ model/artifacts/
 *.onnx
 *.lgb
 
+# Research / reference material (literature briefings, scratch scripts)
+docs/research/
+
 # Notebooks
 .ipynb_checkpoints/
 
