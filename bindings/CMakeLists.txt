@@ -1,6 +1,8 @@
 find_package(pybind11 REQUIRED)
 
 pybind11_add_module(clob_py pyclob.cpp)
+# clob::matching transitively pulls clob::scoring; both are needed for the
+# W10 Scorer + Engine(scoring) ctor bindings.
 target_link_libraries(clob_py PRIVATE clob::matching)
 target_compile_features(clob_py PRIVATE cxx_std_23)
 
