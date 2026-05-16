@@ -42,6 +42,34 @@ jobs:
           fi
           echo "OK: core/ has no io/ dependency"
 
+      - name: Determinism audit — engine has no wall-clock / PRNG / unordered iteration (ADR 0001)
+        run: |
+          # D1: wall-clock APIs in core/matching and core/orderbook
+          if grep -rnE '\b(system_clock|steady_clock|high_resolution_clock|clock_gettime|gettimeofday|localtime|gmtime|mktime)\b' core/matching core/orderbook; then
+            echo "::error::core/matching|orderbook must not read wall-clock (ADR 0001 D1)"
+            exit 1
+          fi
+          if grep -rnE '\b::time[[:space:]]*\(' core/matching core/orderbook; then
+            echo "::error::core/matching|orderbook must not call ::time() (ADR 0001 D1)"
+            exit 1
+          fi
+          # D3: PRNG / entropy in core/matching and core/orderbook
+          if grep -rnE '\b(random_device|mt19937|default_random_engine|arc4random)\b|/dev/urandom' core/matching core/orderbook; then
+            echo "::error::core/matching|orderbook must not use a PRNG (ADR 0001 D3)"
+            exit 1
+          fi
+          if grep -rnE '\b::rand[[:space:]]*\(' core/matching core/orderbook; then
+            echo "::error::core/matching|orderbook must not call ::rand() (ADR 0001 D3)"
+            exit 1
+          fi
+          # D2: no iteration of id_index_ (unordered_map). .end() for find()
+          # comparisons is fine; .begin()/cbegin()/rbegin() starts iteration.
+          if grep -rnE 'id_index_\.(begin|cbegin|rbegin)\(\)' core/; then
+            echo "::error::core/ must not iterate id_index_ (unordered iteration order, ADR 0001 D2)"
+            exit 1
+          fi
+          echo "OK: ADR 0001 determinism invariants hold"
+
       - name: Install Conan
         run: |
           pipx install conan
