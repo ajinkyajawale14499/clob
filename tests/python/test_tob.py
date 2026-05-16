@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import polars as pl
 import pytest
 
 from data.ingestion.binance_bookticker import load_binance_bookticker
@@ -17,10 +16,35 @@ SAMPLE_DIR = Path(__file__).parents[2] / "data" / "raw"
 
 TOB_COLUMNS = ["ts_ns", "bid_price_l1", "bid_size_l1", "ask_price_l1", "ask_size_l1"]
 
+ALL_TICKERS = ["AAPL", "AMZN", "GOOG", "INTC", "MSFT"]
 
-def test_lobster_to_tob_matches_schema() -> None:
-    msg = load_lobster_messages(next(SAMPLE_DIR.glob("*_message_*.csv")))
-    book = load_lobster_orderbook(next(SAMPLE_DIR.glob("*_orderbook_*.csv")), n_levels=10)
+
+def _present_tickers() -> list[str]:
+    return [t for t in ALL_TICKERS if list(SAMPLE_DIR.glob(f"{t}_*_message_*.csv"))]
+
+
+def _paths(ticker: str) -> tuple[Path, Path]:
+    msg = next(SAMPLE_DIR.glob(f"{ticker}_*_message_*.csv"))
+    book = next(SAMPLE_DIR.glob(f"{ticker}_*_orderbook_*.csv"))
+    return msg, book
+
+
+if not _present_tickers():
+    pytest.skip(
+        "No LOBSTER files in data/raw/ — see README quickstart.",
+        allow_module_level=True,
+    )
+
+
+@pytest.fixture(params=_present_tickers())
+def ticker(request) -> str:
+    return request.param
+
+
+def test_lobster_to_tob_matches_schema(ticker: str) -> None:
+    msg_path, book_path = _paths(ticker)
+    msg = load_lobster_messages(msg_path)
+    book = load_lobster_orderbook(book_path, n_levels=10)
     joined = join_messages_orderbook(msg, book)
     tob = lobster_to_tob(joined)
     assert tob.columns == TOB_COLUMNS
@@ -33,10 +57,9 @@ def test_binance_to_tob_matches_schema() -> None:
     assert tob.columns == TOB_COLUMNS
 
 
-def test_unified_tob_is_sorted_by_ts() -> None:
-    msg = load_lobster_messages(next(SAMPLE_DIR.glob("*_message_*.csv")))
-    book = load_lobster_orderbook(next(SAMPLE_DIR.glob("*_orderbook_*.csv")), n_levels=10)
+def test_unified_tob_is_sorted_by_ts(ticker: str) -> None:
+    msg_path, book_path = _paths(ticker)
+    msg = load_lobster_messages(msg_path)
+    book = load_lobster_orderbook(book_path, n_levels=10)
     tob = lobster_to_tob(join_messages_orderbook(msg, book))
-    diffs = tob["ts_ns"].diff().drop_nulls()
-    # All non-negative -> sorted.
-    assert (diffs >= pl.duration(nanoseconds=0)).all()
+    assert tob["ts_ns"].is_sorted()

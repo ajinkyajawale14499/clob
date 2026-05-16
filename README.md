@@ -63,16 +63,28 @@ uv sync                          # one-time
 uv run pytest tests/python -v    # 11 active tests (data-marked tests skip without LOBSTER)
 ```
 
-To exercise the data-dependent paths, download a LOBSTER sample (manual browser step — direct curl returns a React SPA shell) and a Binance bookTicker daily file into `data/raw/`:
+To exercise the data-dependent paths, download LOBSTER samples (manual browser step — direct curl returns a React SPA shell) and a Binance bookTicker daily file into `data/raw/`:
 
 ```bash
-# Manual: https://lobsterdata.com/info/DataSamples.php → AAPL depth-10 → unzip into data/raw/
+# 1. LOBSTER (manual browser download): https://lobsterdata.com/info/DataSamples.php
+#    Grab any of AAPL / AMZN / GOOG / INTC / MSFT at depth 10. Move the zips to
+#    data/raw/ and unzip:
+cd data/raw
+for z in LOBSTER_SampleFile_*.zip; do unzip -o "$z"; done
+
+# 2. Binance bookTicker:
 curl -o data/raw/binance.zip \
   "https://data.binance.vision/data/futures/um/daily/bookTicker/BTCUSDT/BTCUSDT-bookTicker-2024-01-15.zip"
-unzip -d data/raw data/raw/binance.zip && rm data/raw/binance.zip
+unzip -d data/raw data/raw/binance.zip
 
-uv run pytest tests/python -v    # now 24 tests run (13 previously skipped come alive)
+# Then run the full Python suite:
+uv run pytest tests/python -v    # 56 tests pass (LOBSTER tests parametrize across the
+                                 # 5 stocks you downloaded; missing tickers are skipped).
 ```
+
+**No LOBSTER data?** `uv run python scripts/generate_synth_lobster.py` writes a
+format-correct synthetic AAPL fixture (deterministic, ~250 events). Activates the
+same code path against the parsers; doesn't validate real market microstructure.
 
 ## Architecture
 
