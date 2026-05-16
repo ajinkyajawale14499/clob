@@ -76,4 +76,24 @@ std::vector<Fill> Engine::add_ioc(OrderId id, Side side, Price price, Quantity q
     return match_against(book_, id, side, price, qty);
 }
 
+bool Engine::cancel(OrderId id) {
+    return book_.cancel(id);
+}
+
+std::vector<Fill> Engine::cancel_replace(OrderId old_id,
+                                         OrderId new_id,
+                                         Price price,
+                                         Quantity qty) {
+    // Validate BEFORE cancel — otherwise we destroy old_id and then fail to replace,
+    // leaving the client with no order at all (worse than rejecting outright).
+    if (qty.value() <= 0) return {};
+    auto loc = book_.find(old_id);
+    if (!loc) return {};
+    if (old_id != new_id && book_.find(new_id).has_value()) return {};  // duplicate target id
+
+    const Side side = loc->side;
+    book_.cancel(old_id);
+    return add_limit(new_id, side, price, qty);
+}
+
 }  // namespace clob

@@ -93,3 +93,44 @@ TEST_CASE("Engine: IOC fills what crosses, cancels remainder", "[engine][ioc]") 
     REQUIRE(fills[0].quantity == Quantity{3});
     REQUIRE_FALSE(e.book().best_bid().has_value());  // 7 dropped, not rested
 }
+
+TEST_CASE("Engine: cancel removes resting order", "[engine][cancel]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Bid, Price{100}, Quantity{5});
+    REQUIRE(e.cancel(OrderId{1}));
+    REQUIRE_FALSE(e.book().best_bid().has_value());
+}
+
+TEST_CASE("Engine: cancel unknown returns false", "[engine][cancel]") {
+    Engine e;
+    REQUIRE_FALSE(e.cancel(OrderId{999}));
+}
+
+TEST_CASE("Engine: cancel_replace loses time priority", "[engine][replace]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Bid, Price{100}, Quantity{5});
+    e.add_limit(OrderId{2}, Side::Bid, Price{100}, Quantity{5});
+    e.cancel_replace(OrderId{1}, OrderId{3}, Price{100}, Quantity{5});
+    const auto* lvl = e.book().level_at(Side::Bid, Price{100});  // const overload
+    REQUIRE(lvl->front().id == OrderId{2});
+}
+
+TEST_CASE("Engine: cancel_replace with duplicate new_id rejects atomically (old preserved)",
+          "[engine][replace][edge]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Bid, Price{100}, Quantity{5});
+    e.add_limit(OrderId{2}, Side::Bid, Price{99}, Quantity{3});
+    // Try to replace 1 with 2 — but 2 is already resting -> atomic reject.
+    auto fills = e.cancel_replace(OrderId{1}, OrderId{2}, Price{100}, Quantity{5});
+    REQUIRE(fills.empty());
+    REQUIRE(e.book().find(OrderId{1}).has_value());  // old NOT destroyed
+}
+
+TEST_CASE("Engine: cancel_replace with qty=0 rejects atomically (old preserved)",
+          "[engine][replace][edge]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Bid, Price{100}, Quantity{5});
+    auto fills = e.cancel_replace(OrderId{1}, OrderId{2}, Price{100}, Quantity{0});
+    REQUIRE(fills.empty());
+    REQUIRE(e.book().find(OrderId{1}).has_value());
+}
