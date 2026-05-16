@@ -1,12 +1,21 @@
+// matcher-cli — interactive matching-engine REPL.
+//
+// Usage:
+//   matcher-cli                       # no journaling
+//   matcher-cli --journal=PATH        # append every accepted op to PATH
+
 #include <cstdint>
+#include <cstring>
 #include <format>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "core/matching/engine.hpp"
+#include "io/journal/journal_writer.hpp"
 
 using namespace clob;
 
@@ -34,9 +43,31 @@ void print_fills(const std::vector<Fill>& fills) {
 
 }  // namespace
 
-int main() {
-    Engine engine;
-    std::cout << "clob CLI — commands: limit | market | ioc | cancel | book | quit\n";
+int main(int argc, char** argv) {
+    std::string journal_path;
+    for (int i = 1; i < argc; ++i) {
+        constexpr std::string_view kFlag = "--journal=";
+        std::string_view a{argv[i]};
+        if (a.starts_with(kFlag)) {
+            journal_path.assign(a.substr(kFlag.size()));
+        } else {
+            std::cerr << std::format("unknown arg: {}\n", a);
+            return 64;
+        }
+    }
+
+    std::unique_ptr<JournalWriter> journal;
+    Engine::JournalSink sink;
+    if (!journal_path.empty()) {
+        journal = std::make_unique<JournalWriter>(journal_path);
+        sink = [&](const OrderEvent& ev) { journal->write(ev); };
+        std::cout << std::format("clob CLI (journaling to {}) — commands: "
+                                 "limit | market | ioc | cancel | book | quit\n",
+                                 journal_path);
+    } else {
+        std::cout << "clob CLI — commands: limit | market | ioc | cancel | book | quit\n";
+    }
+    Engine engine(sink);
 
     std::string line;
     while (std::getline(std::cin, line)) {
