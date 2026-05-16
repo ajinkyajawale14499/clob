@@ -14,9 +14,11 @@ class ClobConan(ConanFile):
         self.requires("rapidcheck/cci.20231215")
         # W9: pybind11 for Engine Python bindings.
         self.requires("pybind11/3.0.1")
-        # W10: onnxruntime + hdrhistogram-c (note hyphen).
+        # W10: onnxruntime + hdrhistogram-c (note hyphen) + nlohmann_json for
+        # microprice LUT JSON parsing on the C++ side.
         self.requires("onnxruntime/1.24.4")
         self.requires("hdrhistogram-c/0.11.8")
+        self.requires("nlohmann_json/3.11.3")
 
     def layout(self):
         cmake_layout(self)
