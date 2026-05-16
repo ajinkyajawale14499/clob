@@ -21,6 +21,7 @@ include(Catch)
 add_subdirectory(core)
 add_subdirectory(io)
 add_subdirectory(apps)
+add_subdirectory(benchmarks)
 
 option(CLOB_BUILD_PYTHON "Build the clob_py pybind11 module" ON)
 if (CLOB_BUILD_PYTHON)

@@ -8,3 +8,12 @@ target_compile_definitions(test_determinism PRIVATE
 )
 add_dependencies(test_determinism replay-cli)
 catch_discover_tests(test_determinism DISCOVERY_MODE PRE_TEST)
+
+add_executable(test_bench_slo test_bench_slo.cpp)
+target_link_libraries(test_bench_slo PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_bench_slo PRIVATE
+    CLOB_BENCH_SCORING_CLI="$<TARGET_FILE:bench-scoring>"
+    CLOB_REPO_ROOT="${CMAKE_SOURCE_DIR}"
+)
+add_dependencies(test_bench_slo bench-scoring)
+catch_discover_tests(test_bench_slo DISCOVERY_MODE PRE_TEST)
