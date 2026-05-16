@@ -11,11 +11,9 @@ At inference time, the C++ matcher loads the LUT JSON and does an O(1) table
 lookup per event. No regression / model inference needed at runtime.
 """
 
-import json
 from pathlib import Path
 
 import polars as pl
-import pytest
 
 from model.microprice_g import MicropriceLut, fit_microprice_g
 

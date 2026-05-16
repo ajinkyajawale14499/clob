@@ -26,11 +26,20 @@ def spread_zscore(df: pl.DataFrame, *, window: int) -> pl.DataFrame:
 
     Captures spread regime: a wide spread in a normally-wide regime is uninformative,
     but a wide spread in a normally-tight regime predicts upcoming volatility.
+
+    When the rolling std is 0 (constant-spread regime — common in liquid stocks
+    where every event keeps spread at 1 tick), returns 0.0 rather than ±Inf so
+    the ML pipeline can ingest the column without a fill-Inf step downstream.
     """
     col = f"spread_zscore_{window}"
     return df.with_columns(
         _sp=(pl.col("ask_price_l1") - pl.col("bid_price_l1")).cast(pl.Float64)
     ).with_columns(
-        ((pl.col("_sp") - pl.col("_sp").rolling_mean(window_size=window))
-         / pl.col("_sp").rolling_std(window_size=window)).alias(col)
-    ).drop("_sp")
+        _mean=pl.col("_sp").rolling_mean(window_size=window),
+        _std=pl.col("_sp").rolling_std(window_size=window),
+    ).with_columns(
+        pl.when((pl.col("_std") == 0) | pl.col("_std").is_null())
+        .then(0.0)
+        .otherwise((pl.col("_sp") - pl.col("_mean")) / pl.col("_std"))
+        .alias(col)
+    ).drop("_sp", "_mean", "_std")

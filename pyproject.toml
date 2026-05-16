@@ -38,6 +38,9 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+# microprice_g.py uses uppercase variable names (P, R, G) matching Stoikov 2018
+# mathematical notation. Renaming would obscure the algorithm.
+"model/microprice_g.py" = ["N806"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
