@@ -8,6 +8,14 @@ dependencies = [
     "pyarrow>=18.0",
     "duckdb>=1.1",
     "numpy>=2.0",
+    "lightgbm>=4.6.0",
+    "onnxmltools>=1.16.0",
+    "onnx>=1.21.0",
+    "onnxruntime>=1.26.0",
+    "scikit-learn>=1.8.0",
+    "hypothesis>=6.152.7",
+    "pytest-benchmark>=5.2.3",
+    "onnxconverter-common>=1.16.0",
 ]
 
 [dependency-groups]

@@ -12,8 +12,11 @@ class ClobConan(ConanFile):
         # Latest stable on Conan Center as of 2026-05-16.
         self.requires("catch2/3.7.1")
         self.requires("rapidcheck/cci.20231215")
-        # W6+: quill (async logging)
-        # W10+: onnxruntime, hdrhistogram_c
+        # W9: pybind11 for Engine Python bindings.
+        self.requires("pybind11/3.0.1")
+        # W10: onnxruntime + hdrhistogram-c (note hyphen).
+        self.requires("onnxruntime/1.24.4")
+        self.requires("hdrhistogram-c/0.11.8")
 
     def layout(self):
         cmake_layout(self)
