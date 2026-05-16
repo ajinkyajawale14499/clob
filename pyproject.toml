@@ -41,9 +41,10 @@ ignore = ["E501"]
 # microprice_g.py uses uppercase variable names (P, R, G) matching Stoikov 2018
 # mathematical notation. Renaming would obscure the algorithm.
 "model/microprice_g.py" = ["N806"]
-# train.py uses sklearn convention `X` for feature matrices and derivatives
-# (X_bal, Xtr_pool, Xva). Renaming would break the dominant ML convention.
+# train.py + evaluate.py use sklearn convention `X` for feature matrices and
+# derivatives (X_bal, Xtr_pool, Xva). Renaming would break the dominant ML convention.
 "model/train.py" = ["N803", "N806"]
+"model/evaluate.py" = ["N803", "N806"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

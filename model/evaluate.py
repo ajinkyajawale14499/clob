@@ -17,7 +17,6 @@ from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
-import polars as pl
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import brier_score_loss, confusion_matrix
 
@@ -100,18 +99,19 @@ def evaluate(k: int | None = None, save_plots: bool = True) -> dict:
         p_va = booster.predict(Xva.astype(FEATURE_DTYPE))
         cm = confusion_matrix(yva, p_va.argmax(axis=1), labels=list(LABEL_CLASSES))
         results["per_stock"][ticker] = {
-            "n_val": int(len(yva)),
+            "n_val": len(yva),
             "brier_multiclass": multiclass_brier(yva, p_va),
             "calibration": per_class_calibration(yva, p_va),
             "confusion_matrix": cm.tolist(),
         }
-        all_X_va.append(Xva); all_y_va.append(yva)
+        all_X_va.append(Xva)
+        all_y_va.append(yva)
 
     Xva_pool = np.concatenate(all_X_va)
     yva_pool = np.concatenate(all_y_va)
     p_pool = booster.predict(Xva_pool.astype(FEATURE_DTYPE))
     results["pooled"] = {
-        "n_val": int(len(yva_pool)),
+        "n_val": len(yva_pool),
         "brier_multiclass": multiclass_brier(yva_pool, p_pool),
         "calibration": per_class_calibration(yva_pool, p_pool),
     }
@@ -156,7 +156,8 @@ def _save_plots(results: dict, p_pool: np.ndarray, y_pool: np.ndarray,
         ax.plot([0, 1], [0, 1], "k--", alpha=0.3)
         ax.set_title(ticker)
         ax.set_xlabel("predicted prob")
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
     axes[0].set_ylabel("fraction positive")
     axes[0].legend(loc="lower right")
     fig.suptitle(f"Per-stock calibration (10-bin quantile)  K={results['k']}")
@@ -181,7 +182,7 @@ def main() -> None:
     results = evaluate()
     print(f"\n=== Pooled metrics (K={results['k']}) ===")
     print(f"  Brier (multiclass): {results['pooled']['brier_multiclass']:.4f}")
-    print(f"  (baseline uniform 1/3: 0.667; lower is better)")
+    print("  (baseline uniform 1/3: 0.667; lower is better)")
     print("\n=== Per-stock Brier (multiclass) ===")
     for ticker, m in results["per_stock"].items():
         print(f"  {ticker}: Brier={m['brier_multiclass']:.4f}  n_val={m['n_val']}")
