@@ -19,6 +19,7 @@ include(CTest)
 include(Catch)
 
 add_subdirectory(core)
+add_subdirectory(io)
 add_subdirectory(apps)
 
 if (BUILD_TESTING)
