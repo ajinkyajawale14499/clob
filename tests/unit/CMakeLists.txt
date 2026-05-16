@@ -8,7 +8,7 @@ foreach(name price quantity order_id level book engine)
     catch_discover_tests(test_${name} DISCOVERY_MODE PRE_TEST)
 endforeach()
 
-foreach(name journal_event journal_writer)
+foreach(name journal_event journal_writer journal_reader)
     add_executable(test_${name} test_${name}.cpp)
     target_link_libraries(test_${name} PRIVATE clob::journal Catch2::Catch2WithMain)
     catch_discover_tests(test_${name} DISCOVERY_MODE PRE_TEST)
