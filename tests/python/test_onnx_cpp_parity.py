@@ -11,12 +11,12 @@ backtest results (Python) don't match production (C++).
 
 from pathlib import Path
 
+import clob_py
 import numpy as np
 import onnxruntime as ort
 import pytest
 from numpy.testing import assert_allclose
 
-import clob_py
 from model.schema import FEATURE_NAMES
 
 pytestmark = pytest.mark.data

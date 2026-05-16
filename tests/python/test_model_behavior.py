@@ -11,11 +11,12 @@ regression in either training or inference fires here.
 
 from pathlib import Path
 
+import clob_py
 import numpy as np
 import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
-import clob_py
 from tests.fixtures.book import make_book
 
 pytestmark = pytest.mark.data

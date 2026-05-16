@@ -45,6 +45,8 @@ ignore = ["E501"]
 # derivatives (X_bal, Xtr_pool, Xva). Renaming would break the dominant ML convention.
 "model/train.py" = ["N803", "N806"]
 "model/evaluate.py" = ["N803", "N806"]
+# Tests that drive sklearn/numpy-style code also use the `X` convention.
+"tests/python/test_onnx_cpp_parity.py" = ["N806"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
