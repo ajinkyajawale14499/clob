@@ -258,12 +258,77 @@ def grid_search_k(verbose: bool = False) -> tuple[lgb.LGBMClassifier, TrainResul
     return best_model, best_result, grid
 
 
+def export_to_onnx(model: lgb.LGBMClassifier,
+                   output_path: Path = ARTIFACTS_DIR / "model.onnx") -> Path:
+    """Export trained LightGBM to ONNX.
+
+    Per ADR 0006: target_opset=15 (onnxmltools 1.16 LightGBM converter cap;
+    higher opsets fail at conversion). Uses onnxmltools's FloatTensorType
+    (NOT onnxconverter_common's — the shape calculator does an isinstance check).
+
+    Validate the export with `validate_onnx_drift(model, output_path)` before
+    trusting it on the C++ hot path.
+    """
+    from onnxmltools.convert.common.data_types import FloatTensorType
+    from onnxmltools.convert.lightgbm.convert import convert
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    initial_types = [("input", FloatTensorType([None, len(FEATURE_NAMES)]))]
+    onnx_model = convert(
+        model.booster_,
+        initial_types=initial_types,
+        name=f"clob_v1.0_schema_v{SCHEMA_VERSION}",
+        target_opset=15,
+    )
+    output_path.write_bytes(onnx_model.SerializeToString())
+    return output_path
+
+
+def validate_onnx_drift(model: lgb.LGBMClassifier, onnx_path: Path,
+                       n_samples: int = 1000, seed: int = 42) -> dict:
+    """Sweep n_samples random feature vectors through both LightGBM (float64
+    internal) and onnxruntime (float32 internal); return drift statistics.
+
+    Per ADR 0006: expected `max_abs_diff` < 1e-4 and `rmse` << 1e-4 when
+    n_estimators <= 300. If drift exceeds the gate, the train/serve skew test
+    (W10 task 6.5) will fire.
+    """
+    import onnxruntime as ort
+    rng = np.random.default_rng(seed)
+    X = rng.standard_normal((n_samples, len(FEATURE_NAMES))).astype(FEATURE_DTYPE)
+
+    # LightGBM (float64 internal).
+    p_lgb = model.predict_proba(X).astype(np.float64)
+
+    # onnxruntime (float32 internal).
+    sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+    raw = sess.run(None, {"input": X})
+    # LightGBM ONNX outputs: [label, probabilities_zipmap]. probabilities is a
+    # list of dicts {class_id: prob}. Build the array.
+    probs_list = raw[1]
+    p_onnx = np.array(
+        [[d[0], d[1], d[2]] for d in probs_list], dtype=np.float64
+    )
+
+    diff = np.abs(p_lgb - p_onnx)
+    return {
+        "n_samples": n_samples,
+        "max_abs_diff": float(np.max(diff)),
+        "mean_abs_diff": float(np.mean(diff)),
+        "rmse": float(np.sqrt(np.mean(diff ** 2))),
+    }
+
+
 def save_artifacts(model: lgb.LGBMClassifier, result: TrainResult, grid: dict) -> None:
-    """Write model.lgb (native), model_meta.json (committed?), grid stats."""
+    """Write model.lgb (native), model.onnx (deployment), model_meta.json."""
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Native LightGBM (for TreeLite W14 + reproducibility).
     model.booster_.save_model(str(ARTIFACTS_DIR / "model.lgb"))
+
+    # ONNX export for the C++ hot path (ADR 0006).
+    onnx_path = export_to_onnx(model)
+    drift = validate_onnx_drift(model, onnx_path)
 
     meta = {
         "schema_version": SCHEMA_VERSION,
@@ -282,6 +347,7 @@ def save_artifacts(model: lgb.LGBMClassifier, result: TrainResult, grid: dict) -
         "per_stock": {t: asdict(m) for t, m in result.per_stock.items()},
         "lightgbm_params": LIGHTGBM_PARAMS,
         "early_stopping_rounds": LIGHTGBM_EARLY_STOPPING_ROUNDS,
+        "onnx_drift": drift,
     }
     (ARTIFACTS_DIR / "model_meta.json").write_text(json.dumps(meta, indent=2))
 
