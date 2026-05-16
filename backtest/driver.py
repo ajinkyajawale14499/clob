@@ -5,9 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-import numpy as np
-
 import clob_py
+import numpy as np
 
 from backtest.metrics import BacktestResult
 from backtest.policies import LOBSTER_MAX_ORDER_ID, BasePolicy, MLAwareMaker, NaiveMaker
@@ -79,7 +78,7 @@ def run_backtest(
     for event_index, ev in enumerate(stream_lobster_events(msg_path)):
         if max_events is not None and event_index >= max_events:
             break
-        ts, op, *args = ev
+        _ts, op, *args = ev
         fills = []
         if op == "add_limit":
             order_id, side, price, size = args

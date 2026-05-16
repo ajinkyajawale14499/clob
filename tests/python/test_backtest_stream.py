@@ -20,8 +20,8 @@ def _msg_path() -> Path:
 @pytest.mark.skipif(_msg_path() is None, reason="LOBSTER AAPL missing")
 def test_stream_yields_only_add_limit_and_cancel():
     counts: Counter[str] = Counter()
-    for ts, op, *args in stream_lobster_events(_msg_path()):
-        counts[op] += 1
+    for ev in stream_lobster_events(_msg_path()):
+        counts[ev[1]] += 1  # ev = (ts, op, *args)
     # AAPL day has ~70% add_limit, ~25% cancels, rest are execs (skipped).
     assert counts["add_limit"] > 100_000
     assert counts["cancel"] > 10_000

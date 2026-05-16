@@ -20,9 +20,10 @@ import shutil
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ARTIFACTS_DIR = REPO_ROOT / "model" / "artifacts"
@@ -58,7 +59,8 @@ def chart_policy_a_vs_b_summary(rows: list[dict]) -> Path:
     ml_fills = [by[(s, "ml_aware")]["fills"] for s in stocks]
     axes[0].bar(x - width/2, naive_fills, width, label="naive",  color="#888888")
     axes[0].bar(x + width/2, ml_fills,    width, label="ml-aware", color="#3678c4")
-    axes[0].set_xticks(x); axes[0].set_xticklabels(stocks)
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(stocks)
     axes[0].set_ylabel("filled policy quotes")
     axes[0].set_title("Quotes filled (50k events / stock)")
     axes[0].legend()
@@ -68,7 +70,8 @@ def chart_policy_a_vs_b_summary(rows: list[dict]) -> Path:
     ml_mk = [by[(s, "ml_aware")]["markout_mean_ticks"] for s in stocks]
     axes[1].bar(x - width/2, naive_mk, width, label="naive",   color="#888888")
     axes[1].bar(x + width/2, ml_mk,    width, label="ml-aware", color="#3678c4")
-    axes[1].set_xticks(x); axes[1].set_xticklabels(stocks)
+    axes[1].set_xticks(x)
+    axes[1].set_xticklabels(stocks)
     axes[1].set_ylabel("mean markout (ticks; +ve = favorable)")
     axes[1].set_title("Per-fill markout: Naive vs ML-aware")
     axes[1].axhline(0, color="k", lw=0.5)
@@ -94,7 +97,8 @@ def chart_adverse_selection_per_stock(rows: list[dict]) -> Path:
     ml_adv    = [by[(s, "ml_aware")]["adverse_selection_bps"] for s in stocks]
     ax.bar(x - width/2, naive_adv, width, label="naive",    color="#888888")
     ax.bar(x + width/2, ml_adv,    width, label="ml-aware", color="#3678c4")
-    ax.set_xticks(x); ax.set_xticklabels(stocks)
+    ax.set_xticks(x)
+    ax.set_xticklabels(stocks)
     ax.set_ylabel("adverse selection (bps; more negative = policy gains more)")
     ax.set_title("Adverse selection per stock — Naive vs ML-aware")
     ax.axhline(0, color="k", lw=0.5)

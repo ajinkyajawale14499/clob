@@ -47,6 +47,8 @@ ignore = ["E501"]
 "model/evaluate.py" = ["N803", "N806"]
 # Tests that drive sklearn/numpy-style code also use the `X` convention.
 "tests/python/test_onnx_cpp_parity.py" = ["N806"]
+# Backtest narrative uses Unicode minus/multiplication for readability.
+"backtest/run_backtest.py" = ["RUF001"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
