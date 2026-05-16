@@ -21,7 +21,9 @@ data/parquet/
 *.csv.gz
 *.parquet
 
-# Models
+# Models — fitted artifacts, derived from LOBSTER data; not committed.
+# Regenerate locally via `uv run python -m model.microprice_g` (W9) or
+# `uv run python -m model.train` (W9). Documented in README quickstart.
 model/artifacts/
 *.onnx
 *.lgb
