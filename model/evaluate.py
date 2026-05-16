@@ -124,11 +124,14 @@ def evaluate(k: int | None = None, save_plots: bool = True) -> dict:
     if save_plots:
         _save_plots(results, p_pool, yva_pool, booster)
 
-    # Patch meta with new calibration numbers + persist.
+    # Patch meta with new calibration numbers + feature importance + persist.
     meta["calibration_brier_pool"] = results["pooled"]["brier_multiclass"]
     meta["confusion_matrix_pool"] = (
         confusion_matrix(yva_pool, p_pool.argmax(axis=1),
                          labels=list(LABEL_CLASSES))).tolist()
+    meta["feature_importance_gain"] = [
+        [name, int(gain)] for name, gain in results["feature_importance_gain"]
+    ]
     (ARTIFACTS_DIR / "model_meta.json").write_text(json.dumps(meta, indent=2))
     return results
 
