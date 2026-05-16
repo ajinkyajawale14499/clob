@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install g++-14 (enforces plan's gcc 14+ requirement)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          g++ --version | head -1
+          cmake --version | head -1
+
+      - name: Enforce minimum compiler version
+        run: |
+          gxx_major=$(g++ -dumpversion | cut -d. -f1)
+          if [ "$gxx_major" -lt 14 ]; then
+            echo "::error::g++ $gxx_major < 14 — plan requires gcc 14+ / clang 17+"
+            exit 1
+          fi
+
+      - name: Install Conan
+        run: |
+          pipx install conan
+          conan --version
+          conan profile detect --force
+
+      - name: Conan install (Debug for ASan)
+        run: conan install . -s build_type=Debug --build=missing
+
+      - name: Configure (ASan preset)
+        run: cmake --preset asan
+
+      - name: Build
+        run: cmake --build build/Debug --parallel
+
+      - name: Test
+        run: ctest --preset asan --output-on-failure
