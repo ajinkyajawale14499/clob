@@ -8,9 +8,9 @@ foreach(name price quantity order_id level book engine engine_journal)
     catch_discover_tests(test_${name} DISCOVERY_MODE PRE_TEST)
 endforeach()
 
-foreach(name feature_state scorer)
+foreach(name feature_state scorer engine_scoring)
     add_executable(test_${name} test_${name}.cpp)
-    target_link_libraries(test_${name} PRIVATE clob::scoring Catch2::Catch2WithMain)
+    target_link_libraries(test_${name} PRIVATE clob::scoring clob::matching Catch2::Catch2WithMain)
     catch_discover_tests(test_${name} DISCOVERY_MODE PRE_TEST)
 endforeach()
 
