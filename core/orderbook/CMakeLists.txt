@@ -1,0 +1,5 @@
+add_library(clob_orderbook INTERFACE)
+target_include_directories(clob_orderbook INTERFACE ${CMAKE_SOURCE_DIR})
+target_link_libraries(clob_orderbook INTERFACE clob::types)
+target_compile_features(clob_orderbook INTERFACE cxx_std_23)
+add_library(clob::orderbook ALIAS clob_orderbook)
