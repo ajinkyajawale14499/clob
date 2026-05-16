@@ -64,3 +64,23 @@ TEST_CASE("Engine: duplicate resting OrderId is rejected (no rest, original inta
     REQUIRE(fills.empty());
     REQUIRE(e.book().best_bid() == Price{100});  // original 100-level still there
 }
+
+TEST_CASE("Engine: market order fills against best opposite", "[engine][market]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Ask, Price{100}, Quantity{5});
+    e.add_limit(OrderId{2}, Side::Ask, Price{101}, Quantity{5});
+    auto fills = e.add_market(OrderId{3}, Side::Bid, Quantity{7});
+    REQUIRE(fills.size() == 2);
+    REQUIRE(fills[0].price == Price{100});
+    REQUIRE(fills[0].quantity == Quantity{5});
+    REQUIRE(fills[1].price == Price{101});
+    REQUIRE(fills[1].quantity == Quantity{2});
+}
+
+TEST_CASE("Engine: market stops at empty book (no rest)", "[engine][market]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Ask, Price{100}, Quantity{5});
+    auto fills = e.add_market(OrderId{2}, Side::Bid, Quantity{10});
+    REQUIRE(fills.size() == 1);
+    REQUIRE_FALSE(e.book().best_bid().has_value());
+}

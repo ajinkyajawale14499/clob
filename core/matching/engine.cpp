@@ -1,58 +1,74 @@
 #include "core/matching/engine.hpp"
 
 #include <algorithm>  // std::min
-#include <optional>   // std::optional (used by match_against in Task 3.5)
+#include <optional>
 
 namespace clob {
 
-std::vector<Fill> Engine::add_limit(OrderId id, Side side, Price price, Quantity qty) {
+namespace {
+
+// Match `qty` of taker against opposite side, optionally capped at price_cap.
+// price_cap = nullopt -> market order (walk to empty book).
+std::vector<Fill> match_against(Book& book,
+                                OrderId taker,
+                                Side taker_side,
+                                std::optional<Price> price_cap,
+                                Quantity qty) {
     std::vector<Fill> fills;
-    if (qty.value() <= 0) return fills;  // zero/negative rejected silently
-
     Quantity remaining = qty;
-    const Side opp = opposite(side);
+    const Side opp = opposite(taker_side);
 
-    auto crosses = [&]() -> std::optional<Price> {
-        if (side == Side::Bid) {
-            auto ba = book_.best_ask();
-            return (ba && price.value() >= ba->value()) ? ba : std::nullopt;
-        } else {
-            auto bb = book_.best_bid();
-            return (bb && price.value() <= bb->value()) ? bb : std::nullopt;
-        }
+    auto top_opp = [&]() -> std::optional<Price> {
+        return taker_side == Side::Bid ? book.best_ask() : book.best_bid();
+    };
+
+    auto in_cap = [&](Price p) -> bool {
+        if (!price_cap) return true;
+        return taker_side == Side::Bid ? p.value() <= price_cap->value()
+                                       : p.value() >= price_cap->value();
     };
 
     while (remaining.value() > 0) {
-        auto cross = crosses();
-        if (!cross) break;
-        const Price match_price = *cross;
+        auto top = top_opp();
+        if (!top || !in_cap(*top)) break;
+        const Price match_price = *top;
 
-        // Drain inner loop. consume_front returns the maker id if fully consumed.
-        for (Level* lvl = book_.level_at(opp, match_price);
+        for (Level* lvl = book.level_at(opp, match_price);
              lvl != nullptr && remaining.value() > 0 && !lvl->empty();
-             lvl = book_.level_at(opp, match_price)) {
-            const Order head_copy = lvl->front();  // copy id+qty BEFORE mutating
+             lvl = book.level_at(opp, match_price)) {
+            const Order head_copy = lvl->front();
             const Quantity take{std::min(remaining.value(), head_copy.quantity.value())};
-            fills.push_back({id, head_copy.id, match_price, take});
+            fills.push_back({taker, head_copy.id, match_price, take});
             remaining = Quantity{remaining.value() - take.value()};
 
             if (auto consumed = lvl->consume_front(take); consumed) {
-                book_.unindex(*consumed);  // keep id_index_ consistent on full fill
+                book.unindex(*consumed);
             }
         }
-
-        // Cleanup empty level — re-fetch fresh, never via stale lvl pointer.
-        book_.drop_if_empty(opp, match_price);
+        book.drop_if_empty(opp, match_price);
     }
+    return fills;
+}
 
+}  // namespace
+
+std::vector<Fill> Engine::add_limit(OrderId id, Side side, Price price, Quantity qty) {
+    if (qty.value() <= 0) return {};
+    auto fills = match_against(book_, id, side, price, qty);
+    std::int64_t consumed = 0;
+    for (const auto& f : fills) consumed += f.quantity.value();
+    const Quantity remaining{qty.value() - consumed};
     if (remaining.value() > 0) {
-        // Reject duplicate resting OrderId — otherwise original orphaned in its level.
-        if (book_.find(id).has_value()) {
-            return fills;  // No rest. Caller can detect dup via fills.empty() + book unchanged.
-        }
+        // Reject duplicate resting OrderId (see Task 3.4 rationale).
+        if (book_.find(id).has_value()) return fills;
         book_.add_limit(price, Order{id, side, remaining});
     }
     return fills;
+}
+
+std::vector<Fill> Engine::add_market(OrderId id, Side side, Quantity qty) {
+    if (qty.value() <= 0) return {};
+    return match_against(book_, id, side, std::nullopt, qty);
 }
 
 }  // namespace clob
