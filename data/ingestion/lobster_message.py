@@ -12,7 +12,7 @@ Output schema:
     price      Int64           -- LOBSTER native: 1 tick = $0.0001
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import polars as pl
@@ -37,7 +37,7 @@ def load_lobster_messages(path: Path) -> pl.DataFrame:
         schema_overrides=LOBSTER_MESSAGE_SCHEMA,
     )
     midnight_ns = int(
-        datetime.combine(LOBSTER_DATE, datetime.min.time(), tzinfo=timezone.utc).timestamp()
+        datetime.combine(LOBSTER_DATE, datetime.min.time(), tzinfo=UTC).timestamp()
         * 1e9
     )
     return raw.select(
