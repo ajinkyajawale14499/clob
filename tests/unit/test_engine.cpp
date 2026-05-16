@@ -134,3 +134,22 @@ TEST_CASE("Engine: cancel_replace with qty=0 rejects atomically (old preserved)"
     REQUIRE(fills.empty());
     REQUIRE(e.book().find(OrderId{1}).has_value());
 }
+
+TEST_CASE("Engine: self-trade silently fills (STP not implemented in v1)",
+          "[engine][known_limitation]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Bid, Price{100}, Quantity{5});
+    // Same id, opposite side, crossing — matcher allows it. Pins current behavior.
+    auto fills = e.add_limit(OrderId{1}, Side::Ask, Price{100}, Quantity{5});
+    REQUIRE(fills.size() == 1);
+    REQUIRE(fills[0].maker_id == fills[0].taker_id);
+}
+
+TEST_CASE("Engine: qty=1 round-trip", "[engine][edge]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Ask, Price{100}, Quantity{1});
+    auto fills = e.add_limit(OrderId{2}, Side::Bid, Price{100}, Quantity{1});
+    REQUIRE(fills.size() == 1);
+    REQUIRE(fills[0].quantity == Quantity{1});
+    REQUIRE_FALSE(e.book().best_ask().has_value());
+}
