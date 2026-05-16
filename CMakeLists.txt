@@ -22,6 +22,11 @@ add_subdirectory(core)
 add_subdirectory(io)
 add_subdirectory(apps)
 
+option(CLOB_BUILD_PYTHON "Build the clob_py pybind11 module" ON)
+if (CLOB_BUILD_PYTHON)
+    add_subdirectory(bindings)
+endif()
+
 if (BUILD_TESTING)
     add_subdirectory(tests)
 endif()
