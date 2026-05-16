@@ -28,6 +28,20 @@ jobs:
             exit 1
           fi
 
+      - name: Convention check — core does not link io
+        run: |
+          # 1. No #include "io/..." in any core/ source file.
+          if grep -rn '#include[[:space:]]*"io/' core/; then
+            echo "::error::core/ must not #include io/ headers (architectural boundary)"
+            exit 1
+          fi
+          # 2. No core CMakeLists.txt references an io target.
+          if grep -rnE '(clob_journal|clob::journal|clob_log|clob::log)' core/; then
+            echo "::error::core/ must not link io targets"
+            exit 1
+          fi
+          echo "OK: core/ has no io/ dependency"
+
       - name: Install Conan
         run: |
           pipx install conan
