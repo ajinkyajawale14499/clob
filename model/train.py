@@ -274,11 +274,15 @@ def export_to_onnx(model: lgb.LGBMClassifier,
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     initial_types = [("input", FloatTensorType([None, len(FEATURE_NAMES)]))]
+    # zipmap=False -> probabilities output is a plain (N, num_class) float
+    # tensor instead of a sequence-of-maps. Easier to consume from the C++
+    # Ort C++ API (Task 6.3) — no ZipMap iteration needed.
     onnx_model = convert(
         model.booster_,
         initial_types=initial_types,
         name=f"clob_v1.0_schema_v{SCHEMA_VERSION}",
         target_opset=15,
+        zipmap=False,
     )
     output_path.write_bytes(onnx_model.SerializeToString())
     return output_path
@@ -303,12 +307,8 @@ def validate_onnx_drift(model: lgb.LGBMClassifier, onnx_path: Path,
     # onnxruntime (float32 internal).
     sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
     raw = sess.run(None, {"input": X})
-    # LightGBM ONNX outputs: [label, probabilities_zipmap]. probabilities is a
-    # list of dicts {class_id: prob}. Build the array.
-    probs_list = raw[1]
-    p_onnx = np.array(
-        [[d[0], d[1], d[2]] for d in probs_list], dtype=np.float64
-    )
+    # With zipmap=False, output 1 is a plain (N, 3) float tensor.
+    p_onnx = np.asarray(raw[1], dtype=np.float64)
 
     diff = np.abs(p_lgb - p_onnx)
     return {
