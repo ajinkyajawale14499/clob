@@ -18,6 +18,8 @@ find_package(Catch2 3 REQUIRED)
 include(CTest)
 include(Catch)
 
+add_subdirectory(core)
+
 if (BUILD_TESTING)
     add_subdirectory(tests)
 endif()
