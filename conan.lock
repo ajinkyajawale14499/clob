@@ -1,9 +1,12 @@
 {
     "version": "0.5",
     "requires": [
+        "rapidcheck/cci.20231215#4d04e275bc3a07d2a20e9fdd8f05c021%1750175299.326",
         "catch2/3.7.1#d828f12a91e21037c58d9f08ddb63b5d%1736250257.042"
     ],
-    "build_requires": [],
+    "build_requires": [
+        "cmake/3.31.12#074b543418bfd044b7171af3399d8602%1776882511.03"
+    ],
     "python_requires": [],
     "config_requires": []
 }

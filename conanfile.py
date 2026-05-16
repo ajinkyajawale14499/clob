@@ -11,7 +11,7 @@ class ClobConan(ConanFile):
     def requirements(self):
         # Latest stable on Conan Center as of 2026-05-16.
         self.requires("catch2/3.7.1")
-        # W5+: rapidcheck (verified via `conan search rapidcheck/*` before pinning)
+        self.requires("rapidcheck/cci.20231215")
         # W6+: quill (async logging)
         # W10+: onnxruntime, hdrhistogram_c
 
