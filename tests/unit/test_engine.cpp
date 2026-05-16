@@ -84,3 +84,12 @@ TEST_CASE("Engine: market stops at empty book (no rest)", "[engine][market]") {
     REQUIRE(fills.size() == 1);
     REQUIRE_FALSE(e.book().best_bid().has_value());
 }
+
+TEST_CASE("Engine: IOC fills what crosses, cancels remainder", "[engine][ioc]") {
+    Engine e;
+    e.add_limit(OrderId{1}, Side::Ask, Price{100}, Quantity{3});
+    auto fills = e.add_ioc(OrderId{2}, Side::Bid, Price{100}, Quantity{10});
+    REQUIRE(fills.size() == 1);
+    REQUIRE(fills[0].quantity == Quantity{3});
+    REQUIRE_FALSE(e.book().best_bid().has_value());  // 7 dropped, not rested
+}

@@ -11,6 +11,7 @@ class Engine {
 public:
     std::vector<Fill> add_limit(OrderId id, Side side, Price price, Quantity qty);
     std::vector<Fill> add_market(OrderId id, Side side, Quantity qty);
+    std::vector<Fill> add_ioc(OrderId id, Side side, Price price, Quantity qty);
 
     [[nodiscard]] const Book& book() const noexcept { return book_; }
 

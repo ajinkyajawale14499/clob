@@ -71,4 +71,9 @@ std::vector<Fill> Engine::add_market(OrderId id, Side side, Quantity qty) {
     return match_against(book_, id, side, std::nullopt, qty);
 }
 
+std::vector<Fill> Engine::add_ioc(OrderId id, Side side, Price price, Quantity qty) {
+    if (qty.value() <= 0) return {};
+    return match_against(book_, id, side, price, qty);
+}
+
 }  // namespace clob
