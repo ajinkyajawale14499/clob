@@ -52,8 +52,7 @@ std::vector<Fill> match_against(Book& book,
 
 }  // namespace
 
-std::vector<Fill> Engine::add_limit(OrderId id, Side side, Price price, Quantity qty) {
-    if (qty.value() <= 0) return {};
+std::vector<Fill> Engine::do_add_limit(OrderId id, Side side, Price price, Quantity qty) {
     auto fills = match_against(book_, id, side, price, qty);
     std::int64_t consumed = 0;
     for (const auto& f : fills) consumed += f.quantity.value();
@@ -66,17 +65,29 @@ std::vector<Fill> Engine::add_limit(OrderId id, Side side, Price price, Quantity
     return fills;
 }
 
+std::vector<Fill> Engine::add_limit(OrderId id, Side side, Price price, Quantity qty) {
+    if (qty.value() <= 0) return {};
+    if (journal_sink_) journal_sink_(NewLimit{id, side, price, qty});
+    return do_add_limit(id, side, price, qty);
+}
+
 std::vector<Fill> Engine::add_market(OrderId id, Side side, Quantity qty) {
     if (qty.value() <= 0) return {};
+    if (journal_sink_) journal_sink_(NewMarket{id, side, qty});
     return match_against(book_, id, side, std::nullopt, qty);
 }
 
 std::vector<Fill> Engine::add_ioc(OrderId id, Side side, Price price, Quantity qty) {
     if (qty.value() <= 0) return {};
+    if (journal_sink_) journal_sink_(NewIoc{id, side, price, qty});
     return match_against(book_, id, side, price, qty);
 }
 
 bool Engine::cancel(OrderId id) {
+    // Journal only successful cancels — unknown-id is a no-op and shouldn't
+    // bloat the log or change replay state.
+    if (!book_.find(id).has_value()) return false;
+    if (journal_sink_) journal_sink_(Cancel{id});
     return book_.cancel(id);
 }
 
@@ -91,9 +102,13 @@ std::vector<Fill> Engine::cancel_replace(OrderId old_id,
     if (!loc) return {};
     if (old_id != new_id && book_.find(new_id).has_value()) return {};  // duplicate target id
 
+    if (journal_sink_) journal_sink_(Replace{old_id, new_id, price, qty});
+
     const Side side = loc->side;
     book_.cancel(old_id);
-    return add_limit(new_id, side, price, qty);
+    // Use do_add_limit (not public add_limit) so the sink only fires once per
+    // top-level op — Replace, not Replace + NewLimit.
+    return do_add_limit(new_id, side, price, qty);
 }
 
 }  // namespace clob

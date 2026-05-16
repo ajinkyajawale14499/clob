@@ -1,0 +1,5 @@
+add_library(clob_events INTERFACE)
+target_include_directories(clob_events INTERFACE ${CMAKE_SOURCE_DIR})
+target_link_libraries(clob_events INTERFACE clob::types)
+target_compile_features(clob_events INTERFACE cxx_std_23)
+add_library(clob::events ALIAS clob_events)

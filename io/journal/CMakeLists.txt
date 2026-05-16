@@ -1,5 +1,5 @@
 add_library(clob_journal STATIC journal_writer.cpp journal_reader.cpp)
 target_include_directories(clob_journal PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(clob_journal PUBLIC clob::types)
+target_link_libraries(clob_journal PUBLIC clob::events)
 target_compile_features(clob_journal PUBLIC cxx_std_23)
 add_library(clob::journal ALIAS clob_journal)
