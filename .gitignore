@@ -1,0 +1,43 @@
+# Build
+build/
+out/
+cmake-build-*/
+
+# Conan
+.conan2/
+CMakeUserPresets.json
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+
+# Data — large, never commit
+data/raw/
+data/parquet/
+*.csv.gz
+*.parquet
+
+# Models
+model/artifacts/
+*.onnx
+*.lgb
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+*.bin

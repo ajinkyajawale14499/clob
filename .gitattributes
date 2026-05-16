@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.{cpp,hpp,h,c,cc,cxx,py,md,yml,yaml,json,toml,cmake,txt} text
+*.{csv,parquet,onnx,bin,jpg,png,gif,ico} binary
+CMakeLists.txt text
