@@ -15,20 +15,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install g++-14 (enforces plan's gcc 14+ requirement)
+      - name: Install g++-13 (matches Conan-Center pre-built binary ABI)
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-14
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo apt-get install -y g++-13
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
           g++ --version | head -1
           cmake --version | head -1
 
+      # Project originally pinned gcc-14 for defensive C++23 support, but we
+      # don't actually use any gcc-14-only features (modules are banned per the
+      # plan; std::format/<=>/ranges all work on gcc-13). gcc-14 forced Conan
+      # to rebuild onnxruntime from source on every push because Conan-Center
+      # pre-builts target gcc-11/12/13. Relaxed to 13+; CI build drops from
+      # ~40 min to ~5 min on cold cache.
       - name: Enforce minimum compiler version
         run: |
           gxx_major=$(g++ -dumpversion | cut -d. -f1)
-          if [ "$gxx_major" -lt 14 ]; then
-            echo "::error::g++ $gxx_major < 14 — plan requires gcc 14+ / clang 17+"
+          if [ "$gxx_major" -lt 13 ]; then
+            echo "::error::g++ $gxx_major < 13 — plan requires gcc 13+ / clang 17+"
             exit 1
           fi
 
@@ -81,9 +87,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.conan2/p
-          key: conan-${{ runner.os }}-gcc14-${{ hashFiles('conanfile.py', 'conan.lock') }}
+          key: conan-${{ runner.os }}-gcc13-${{ hashFiles('conanfile.py', 'conan.lock') }}
           restore-keys: |
-            conan-${{ runner.os }}-gcc14-
+            conan-${{ runner.os }}-gcc13-
 
       - name: Conan install (Debug for ASan)
         run: conan install . -s build_type=Debug --build=missing

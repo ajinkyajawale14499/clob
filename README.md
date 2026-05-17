@@ -22,7 +22,7 @@ add_limit                      p99
 
 ## Quickstart
 
-Prereqs: cmake 3.28+, ninja, Conan 2, gcc 14+ or clang 17+, Python 3.12+, [`uv`](https://github.com/astral-sh/uv).
+Prereqs: cmake 3.28+, ninja, Conan 2, gcc 13+ or clang 17+, Python 3.12+, [`uv`](https://github.com/astral-sh/uv).
 
 ```bash
 git clone https://github.com/ajinkyajawale14499/clob.git
