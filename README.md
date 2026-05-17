@@ -120,8 +120,6 @@ tests/
 | [0008](docs/adr/0008-3class-label-deadband.md) | 3-class labels with 1-tick deadband |
 | [0009](docs/adr/0009-single-day-train-limit.md) | Single-day training data — known limitation |
 
-See [`docs/what-i-would-do-at-hft-grade.md`](docs/what-i-would-do-at-hft-grade.md) for what this project deliberately doesn't build (kernel bypass, FPGA, lock-free queues, etc).
-
 ## Repo conventions
 
 - Every commit is green. CI gates ASan/UBSan build + tests, the [4 determinism invariants](docs/adr/0001-replay-determinism.md), and the p99 < 1 ms SLO.
