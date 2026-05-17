@@ -91,5 +91,30 @@ else
   exit 1
 fi
 
+# ----- 4. (Optional) ML scoring demo ------------------------------------------
+MODEL="model/artifacts/model.onnx"
+LUT="model/artifacts/microprice_g.json"
+if [ -f "${MODEL}" ] && [ -f "${LUT}" ]; then
+  echo
+  note "Bonus: same matcher with ML scoring on the hot path (p99 < 5µs)."
+  step "matcher-cli --model=${MODEL} --lut=${LUT} --ticker=AAPL <<EOF"
+  cat <<'EOF'
+limit 1 ask 100 5
+limit 2 bid 100 3
+quit
+EOF
+  echo
+  "${MATCHER}" --model="${MODEL}" --lut="${LUT}" --ticker=AAPL <<'EOF' 2>&1 | sed 's/^/    /'
+limit 1 ask 100 5
+limit 2 bid 100 3
+quit
+EOF
+  ok "score emitted per order (P(Up) - P(Down) ∈ [-1, +1])"
+else
+  echo
+  note "Skipping ML scoring demo — model.onnx + microprice_g.json not present."
+  note "Run \`uv run python -m model.train\` to train (needs LOBSTER in data/raw/)."
+fi
+
 echo
 ok "demo complete"
