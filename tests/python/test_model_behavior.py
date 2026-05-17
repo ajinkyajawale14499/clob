@@ -11,13 +11,15 @@ regression in either training or inference fires here.
 
 from pathlib import Path
 
-import clob_py
 import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from tests.fixtures.book import make_book
+# Skip module entirely if the C++ pybind11 bindings haven't been built.
+clob_py = pytest.importorskip("clob_py")
+
+from tests.fixtures.book import make_book  # noqa: E402
 
 pytestmark = pytest.mark.data
 

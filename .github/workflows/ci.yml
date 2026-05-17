@@ -8,6 +8,10 @@ on:
 jobs:
   cpp:
     runs-on: ubuntu-latest
+    # Hard cap so runaway builds fail fast instead of consuming the budget.
+    # Initial run (cold Conan cache, builds onnxruntime from source) takes
+    # ~25 min; subsequent cached runs are ~3 min.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -30,12 +34,10 @@ jobs:
 
       - name: Convention check — core does not link io
         run: |
-          # 1. No #include "io/..." in any core/ source file.
           if grep -rn '#include[[:space:]]*"io/' core/; then
             echo "::error::core/ must not #include io/ headers (architectural boundary)"
             exit 1
           fi
-          # 2. No core CMakeLists.txt references an io target.
           if grep -rnE '(clob_journal|clob::journal|clob_log|clob::log)' core/; then
             echo "::error::core/ must not link io targets"
             exit 1
@@ -44,7 +46,6 @@ jobs:
 
       - name: Determinism audit — engine has no wall-clock / PRNG / unordered iteration (ADR 0001)
         run: |
-          # D1: wall-clock APIs in core/matching and core/orderbook
           if grep -rnE '\b(system_clock|steady_clock|high_resolution_clock|clock_gettime|gettimeofday|localtime|gmtime|mktime)\b' core/matching core/orderbook; then
             echo "::error::core/matching|orderbook must not read wall-clock (ADR 0001 D1)"
             exit 1
@@ -53,7 +54,6 @@ jobs:
             echo "::error::core/matching|orderbook must not call ::time() (ADR 0001 D1)"
             exit 1
           fi
-          # D3: PRNG / entropy in core/matching and core/orderbook
           if grep -rnE '\b(random_device|mt19937|default_random_engine|arc4random)\b|/dev/urandom' core/matching core/orderbook; then
             echo "::error::core/matching|orderbook must not use a PRNG (ADR 0001 D3)"
             exit 1
@@ -62,8 +62,6 @@ jobs:
             echo "::error::core/matching|orderbook must not call ::rand() (ADR 0001 D3)"
             exit 1
           fi
-          # D2: no iteration of id_index_ (unordered_map). .end() for find()
-          # comparisons is fine; .begin()/cbegin()/rbegin() starts iteration.
           if grep -rnE 'id_index_\.(begin|cbegin|rbegin)\(\)' core/; then
             echo "::error::core/ must not iterate id_index_ (unordered iteration order, ADR 0001 D2)"
             exit 1
@@ -75,6 +73,17 @@ jobs:
           pipx install conan
           conan --version
           conan profile detect --force
+
+      # Cache the Conan package store (~/.conan2/p) so onnxruntime and friends
+      # don't rebuild from source on every push. Key includes conanfile.py and
+      # conan.lock so the cache invalidates only when deps change.
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2/p
+          key: conan-${{ runner.os }}-gcc14-${{ hashFiles('conanfile.py', 'conan.lock') }}
+          restore-keys: |
+            conan-${{ runner.os }}-gcc14-
 
       - name: Conan install (Debug for ASan)
         run: conan install . -s build_type=Debug --build=missing

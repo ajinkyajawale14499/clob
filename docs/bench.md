@@ -9,10 +9,10 @@ Includes: feature assembly + ONNX inference + matcher hot path. Excludes: IO, mo
 
 | Percentile | Latency (ns) | Latency (us) |
 |---|---|---|
-| p50 | 70847 | 70.847 |
-| p90 | 73727 | 73.727 |
-| p99 | 83135 | 83.135 |
-| p999 | 126271 | 126.271 |
-| max | 5570559 | 5570.56 |
+| p50 | 70911 | 70.911 |
+| p90 | 75391 | 75.391 |
+| p99 | 88255 | 88.255 |
+| p999 | 149247 | 149.247 |
+| max | 6549503 | 6549.5 |
 
-Gate: :white_check_mark: PASS (p99 = 83.135 us vs SLO 1000 us)
+Gate: :white_check_mark: PASS (p99 = 88.255 us vs SLO 1000 us)

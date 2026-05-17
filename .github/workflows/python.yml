@@ -8,9 +8,15 @@ on:
 jobs:
   python:
     runs-on: ubuntu-latest
+    # Pure-Python job; no compilation. Should always finish in 1-2 min.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv sync
       - run: uv run ruff check .
+      # Tests that import clob_py (the C++ pybind11 module) gracefully skip
+      # via pytest.importorskip — see test_backtest_*, test_model_behavior,
+      # test_onnx_cpp_parity. CI doesn't build the C++ side; that's the
+      # `cpp` job's responsibility.
       - run: uv run pytest tests/python -v -m "not data"

@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+# backtest.stream imports clob_py — skip if the C++ bindings aren't built.
+pytest.importorskip("clob_py")
 from backtest.stream import stream_lobster_events
 
 pytestmark = pytest.mark.data

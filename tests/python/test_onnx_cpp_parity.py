@@ -11,13 +11,15 @@ backtest results (Python) don't match production (C++).
 
 from pathlib import Path
 
-import clob_py
 import numpy as np
 import onnxruntime as ort
 import pytest
 from numpy.testing import assert_allclose
 
-from model.schema import FEATURE_NAMES
+# Skip module entirely if the C++ pybind11 bindings haven't been built.
+clob_py = pytest.importorskip("clob_py")
+
+from model.schema import FEATURE_NAMES  # noqa: E402
 
 pytestmark = pytest.mark.data
 

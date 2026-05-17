@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+# backtest.driver imports clob_py — skip if the C++ bindings aren't built.
+pytest.importorskip("clob_py")
 from backtest.driver import run_backtest
 from backtest.metrics import summarise
 
