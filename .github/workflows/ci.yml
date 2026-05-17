@@ -8,14 +8,13 @@ on:
 jobs:
   cpp:
     runs-on: ubuntu-latest
-    # Hard cap so runaway builds fail fast instead of consuming the budget.
-    # Initial run (cold Conan cache, builds onnxruntime from source) takes
-    # ~25 min; subsequent cached runs are ~3 min.
-    timeout-minutes: 60
+    # Uses Release deps (Conan-Center pre-builts) + ASan/UBSan flags on our
+    # own code only — see asan-fast preset. Cold cache run: ~3 min. Cached: ~2 min.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install g++-13 (matches Conan-Center pre-built binary ABI)
+      - name: Install g++-13 (matches Conan-Center Release pre-built ABI)
         run: |
           sudo apt-get update
           sudo apt-get install -y g++-13
@@ -24,12 +23,12 @@ jobs:
           g++ --version | head -1
           cmake --version | head -1
 
-      # Project originally pinned gcc-14 for defensive C++23 support, but we
-      # don't actually use any gcc-14-only features (modules are banned per the
-      # plan; std::format/<=>/ranges all work on gcc-13). gcc-14 forced Conan
-      # to rebuild onnxruntime from source on every push because Conan-Center
-      # pre-builts target gcc-11/12/13. Relaxed to 13+; CI build drops from
-      # ~40 min to ~5 min on cold cache.
+      # Why gcc-13 not gcc-14: Conan-Center Release pre-builts target
+      # gcc-11/12/13. gcc-14 forces source builds. The code itself only needs
+      # C++23 features that work on gcc-13 (std::format, <=>, basic ranges).
+      # Pre-builts only exist for Release; we use the asan-fast preset which
+      # links Release deps but compiles OUR code with -fsanitize=address,undefined.
+      # Standard ASan-in-CI pattern: instrument first-party code only.
       - name: Enforce minimum compiler version
         run: |
           gxx_major=$(g++ -dumpversion | cut -d. -f1)
@@ -80,25 +79,28 @@ jobs:
           conan --version
           conan profile detect --force
 
-      # Cache the Conan package store (~/.conan2/p) so onnxruntime and friends
-      # don't rebuild from source on every push. Key includes conanfile.py and
-      # conan.lock so the cache invalidates only when deps change.
+      # Cache the Conan package store (~/.conan2/p) so any from-source builds
+      # don't repeat. With Release deps + asan-fast preset there should be
+      # nothing to build — Conan-Center pre-builts cover everything.
       - name: Cache Conan packages
         uses: actions/cache@v4
         with:
           path: ~/.conan2/p
-          key: conan-${{ runner.os }}-gcc13-${{ hashFiles('conanfile.py', 'conan.lock') }}
+          key: conan-${{ runner.os }}-gcc13-release-${{ hashFiles('conanfile.py', 'conan.lock') }}
           restore-keys: |
-            conan-${{ runner.os }}-gcc13-
+            conan-${{ runner.os }}-gcc13-release-
 
-      - name: Conan install (Debug for ASan)
-        run: conan install . -s build_type=Debug --build=missing
+      # Release deps (pre-built) — ASan/UBSan flags are applied to OUR code
+      # only via the asan-fast preset. Standard industry pattern for
+      # sanitized-CI; we don't need third-party libs to be instrumented.
+      - name: Conan install (Release deps)
+        run: conan install . -s build_type=Release --build=missing
 
-      - name: Configure (ASan preset)
-        run: cmake --preset asan
+      - name: Configure (asan-fast preset — Release deps + ASan on our code)
+        run: cmake --preset asan-fast
 
       - name: Build
-        run: cmake --build build/Debug --parallel
+        run: cmake --build build/Release --parallel
 
       - name: Test
-        run: ctest --preset asan --output-on-failure
+        run: ctest --preset asan-fast --output-on-failure
