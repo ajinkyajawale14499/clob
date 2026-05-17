@@ -116,8 +116,13 @@ PYBIND11_MODULE(clob_py, m) {
                  const auto n = static_cast<std::size_t>(buf.shape[0]);
                  std::vector<ScoredFeatures> batch(n);
                  const float* ptr = static_cast<const float*>(buf.ptr);
+                 // void* cast silences gcc-13 -Wclass-memaccess: ScoredFeatures
+                 // has default member initializers so the compiler classifies it
+                 // as "non-trivial" for the warning, even though
+                 // is_trivially_copyable holds (asserted in feature_state.hpp).
                  for (std::size_t i = 0; i < n; ++i) {
-                     std::memcpy(&batch[i], ptr + i * 19, 19 * sizeof(float));
+                     std::memcpy(static_cast<void*>(&batch[i]),
+                                 ptr + i * 19, 19 * sizeof(float));
                  }
                  auto scores = s.score_batch(batch);
                  return py::array_t<double>(static_cast<py::ssize_t>(n), scores.data());
@@ -131,8 +136,13 @@ PYBIND11_MODULE(clob_py, m) {
                  const auto n = static_cast<std::size_t>(buf.shape[0]);
                  std::vector<ScoredFeatures> batch(n);
                  const float* ptr = static_cast<const float*>(buf.ptr);
+                 // void* cast silences gcc-13 -Wclass-memaccess: ScoredFeatures
+                 // has default member initializers so the compiler classifies it
+                 // as "non-trivial" for the warning, even though
+                 // is_trivially_copyable holds (asserted in feature_state.hpp).
                  for (std::size_t i = 0; i < n; ++i) {
-                     std::memcpy(&batch[i], ptr + i * 19, 19 * sizeof(float));
+                     std::memcpy(static_cast<void*>(&batch[i]),
+                                 ptr + i * 19, 19 * sizeof(float));
                  }
                  auto probs = s.probs_batch(batch);
                  std::vector<double> flat(n * 3);

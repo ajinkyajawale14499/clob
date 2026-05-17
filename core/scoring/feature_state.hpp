@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include "core/orderbook/book.hpp"
@@ -64,6 +65,10 @@ struct ScoredFeatures {
     void to_array(std::array<float, 19>& out) const noexcept;
 };
 static_assert(sizeof(ScoredFeatures) == 19 * sizeof(float));
+// Default member initializers make gcc-13's -Wclass-memaccess flag memcpy
+// into this struct as suspicious. Document via static_assert that this is a
+// trivially-copyable POD so the memcpy in bindings/pyclob.cpp is well-defined.
+static_assert(std::is_trivially_copyable_v<ScoredFeatures>);
 
 // Stoikov G(I,S) lookup table — loaded from model/artifacts/microprice_g.json
 // (written by model.microprice_g.MicropriceLut.save()).
